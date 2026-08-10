@@ -78,7 +78,7 @@ export default function Home() {
 
   return (
     <main className="screen">
-      <div className="panel">
+      <div className={`panel ${isUrgent ? "urgent" : ""}`}>
         <p className="eyebrow">Deadman Switch</p>
         <h1 className={triggered ? "status-triggered" : "status-armed"}>
           {triggered ? "TRIGGERED — file terkirim" : "ARMED — menunggu absen"}
@@ -128,7 +128,17 @@ export default function Home() {
           {loading ? "Memproses..." : "Absen Sekarang"}
         </button>
 
-        {message && <p className="message">{message}</p>}
+{message && <p className="message">{message}</p>}
+
+<div className="warning-block">
+  <p className="warning-label">⚠ PERINGATAN</p>
+  <p className="warning-text">
+    Jika hitungan mundur ini mencapai nol tanpa absen, sistem akan mengirim
+    seluruh berkas yang tersimpan secara otomatis dan permanen ke kontak
+    darurat. Tidak ada peringatan lanjutan. Tidak ada jalan untuk
+    membatalkannya setelah proses dimulai.
+  </p>
+</div>
 
         <Link href="/admin" className="foot-link">
           Kelola file & pengaturan →
