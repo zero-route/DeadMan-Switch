@@ -16,7 +16,7 @@ export async function uploadMediaToWhatsApp(
 
   const form = new FormData();
   form.append("messaging_product", "whatsapp");
-  form.append("file", new Blob([fileBytes], { type: mimeType }), filename);
+  form.append("file", new Blob([new Uint8Array(fileBytes)], { type: mimeType }), filename);
 
   const res = await fetch(
     `https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/media`,
