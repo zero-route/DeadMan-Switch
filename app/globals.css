@@ -215,8 +215,6 @@ input:focus-visible {
 }
 .panel {
   position: relative;
-  box-shadow: 0 0 0 1px var(--line), 0 0 32px -8px rgba(92, 154, 151, 0.35);
-  transition: box-shadow 0.6s ease;
 }
 
 .panel::before {
