@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, FILES_BUCKET } from "@/lib/supabase";
 import { uploadMediaToWhatsApp, sendWhatsAppDocument, sendWhatsAppText } from "@/lib/whatsapp";
