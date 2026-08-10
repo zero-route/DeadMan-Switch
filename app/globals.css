@@ -244,7 +244,6 @@ input:focus-visible {
   margin-top: 20px;
   padding: 14px 16px;
   border-left: 2px solid var(--warn);
-  background: rgba(196, 71, 47, 0.06);
 }
 
 .warning-label {
