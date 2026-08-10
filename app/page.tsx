@@ -134,8 +134,7 @@ export default function Home() {
   <p className="warning-label">⚠ PERINGATAN</p>
   <p className="warning-text">
     Jika hitungan mundur ini mencapai nol tanpa absen, sistem akan mengirim
-    seluruh berkas yang tersimpan secara otomatis dan permanen ke kontak
-    darurat. Tidak ada peringatan lanjutan. Tidak ada jalan untuk
+    seluruh berkas yang tersimpan secara otomatis dan permanen ke internet. Tidak ada peringatan lanjutan. Tidak ada jalan untuk
     membatalkannya setelah proses dimulai.
   </p>
 </div>
