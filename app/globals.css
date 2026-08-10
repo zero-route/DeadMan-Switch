@@ -228,14 +228,6 @@ input:focus-visible {
   opacity: 0.6;
 }
 
-.panel.urgent {
-  box-shadow: 0 0 0 1px rgba(196, 71, 47, 0.4), 0 0 40px -6px rgba(196, 71, 47, 0.45);
-}
-
-.panel.urgent::before {
-  background: linear-gradient(90deg, transparent, var(--warn), transparent);
-}
-
 .pulse-line {
   filter: drop-shadow(0 0 6px currentColor);
 }
