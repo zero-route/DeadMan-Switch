@@ -67,6 +67,8 @@ export async function GET(req: NextRequest) {
       
 const buffer = Buffer.from(await fileBytes.arrayBuffer());
       await sendWhatsAppDocument(buffer, file.filename, file.caption);
+    }
+  }
 
   await supabase.from("switch_state").update({ triggered: true }).eq("id", 1);
 
