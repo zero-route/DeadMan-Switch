@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, FILES_BUCKET } from "@/lib/supabase";
-import { uploadMediaToWhatsApp, sendWhatsAppDocument, sendWhatsAppText } from "@/lib/whatsapp";
+import { sendWhatsAppDocument, sendWhatsAppText } from "@/lib/telegram";
 
 function isAuthorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -64,16 +64,9 @@ export async function GET(req: NextRequest) {
         await sendWhatsAppText(`Gagal mengambil file: ${file.filename}`);
         continue;
       }
-
-      const buffer = Buffer.from(await fileBytes.arrayBuffer());
-      const mediaId = await uploadMediaToWhatsApp(
-        buffer,
-        file.filename,
-        file.mime_type || "application/octet-stream"
-      );
-      await sendWhatsAppDocument(mediaId, file.filename, file.caption);
-    }
-  }
+      
+const buffer = Buffer.from(await fileBytes.arrayBuffer());
+      await sendWhatsAppDocument(buffer, file.filename, file.caption);
 
   await supabase.from("switch_state").update({ triggered: true }).eq("id", 1);
 
