@@ -31,7 +31,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   const fetchStatus = useCallback(async () => {
-    const res = await fetch("/api/status");
+    const res = await fetch("/api/status", { cache: "no-store" });
     if (res.ok) setStatus(await res.json());
   }, []);
 
@@ -54,10 +54,11 @@ export default function Home() {
     setMessage("");
     try {
       const res = await fetch("/api/checkin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-      });
+  method: "POST",
+  cache: "no-store",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ pin }),
+});
       const data = await res.json();
       if (!res.ok) {
         setMessage(data.error || "Gagal absen.");
