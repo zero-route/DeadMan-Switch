@@ -19,10 +19,17 @@ export async function GET() {
     lastCheckin.getTime() + data.threshold_hours * 60 * 60 * 1000
   );
 
-  return NextResponse.json({
+  return NextResponse.json(
+  {
     last_checkin: data.last_checkin,
     threshold_hours: data.threshold_hours,
     triggered: data.triggered,
     deadline: deadline.toISOString(),
-  });
+  },
+  {
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    },
+  }
+);
 }
