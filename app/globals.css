@@ -229,10 +229,6 @@ input:focus-visible {
   opacity: 0.6;
 }
 
-.pulse-line {
-  filter: drop-shadow(0 0 6px currentColor);
-}
-
 .warning-block {
   margin-top: 20px;
   padding: 14px 16px;
