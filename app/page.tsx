@@ -31,9 +31,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   const fetchStatus = useCallback(async () => {
-    const res = await fetch("/api/status", { cache: "no-store" });
+    const res = await fetch(`/api/status?t=${Date.now()}`, { cache: "no-store" });
     if (res.ok) setStatus(await res.json());
   }, []);
+
 
   useEffect(() => {
     fetchStatus();
