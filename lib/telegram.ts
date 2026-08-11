@@ -35,7 +35,7 @@ export async function sendWhatsAppDocument(
   const form = new FormData();
   form.append("chat_id", chatId);
   if (caption) form.append("caption", caption);
-  form.append("document", new Blob([fileBuffer]), filename);
+  form.append("document", new Blob([new Uint8Array(fileBuffer)]), filename);
 
   const response = await fetch(`${TELEGRAM_API}/bot${token}/sendDocument`, {
     method: "POST",
