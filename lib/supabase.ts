@@ -10,6 +10,12 @@ export function getSupabaseAdmin() {
 
   return createClient(url, serviceKey, {
     auth: { persistSession: false },
+    // TAMBAHKAN BLOK GLOBAL INI
+    global: {
+      fetch: (url, options) => {
+        return fetch(url, { ...options, cache: "no-store" });
+      },
+    },
   });
 }
 
