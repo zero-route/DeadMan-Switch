@@ -6,7 +6,7 @@
   --text-dim: #8b8f9c;
   --calm: #00FFBB;
   --warn: #FFFFFF;
-  --war: #FF0000;
+  --war: #FF3344;
 }
 
 * {
@@ -35,22 +35,46 @@ body {
   padding: 24px;
 }
 
+/* Panel & Glow Line Upper Border */
 .panel {
+  position: relative;
   width: 100%;
   max-width: 460px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 32px 28px;
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--calm), transparent);
+  opacity: 0.6;
 }
 
 .eyebrow {
   font-family: var(--font-mono), monospace;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-dim);
-  margin: 0 0 4px;
+  margin: 0 0 6px;
+}
+
+/* Status Header & Animated Dot Pulse */
+h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 24px;
+  letter-spacing: 0.01em;
 }
 
 .status-armed {
@@ -58,16 +82,44 @@ body {
 }
 
 .status-triggered {
-  color: var(--warn);
+  color: var(--war);
 }
 
-h1 {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 24px;
-  letter-spacing: 0.01em;
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
+.status-dot.armed {
+  background-color: var(--calm);
+  box-shadow: 0 0 8px var(--calm);
+  animation: dot-pulse 2s infinite;
+}
+
+.status-dot.triggered {
+  background-color: var(--war);
+  box-shadow: 0 0 8px var(--war);
+}
+
+@keyframes dot-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 255, 187, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(0, 255, 187, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 255, 187, 0);
+  }
+}
+
+/* ECG Line Animation */
 .pulse-wrap {
   height: 56px;
   margin: 8px 0 22px;
@@ -93,6 +145,7 @@ h1 {
   }
 }
 
+/* Countdown Section */
 .countdown {
   font-family: var(--font-mono), monospace;
   font-size: 40px;
@@ -113,11 +166,14 @@ h1 {
   margin: 22px 0;
 }
 
+/* Form Controls */
 .field-label {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
+  font-family: var(--font-mono), monospace;
   color: var(--text-dim);
   margin-bottom: 8px;
+  letter-spacing: 0.05em;
 }
 
 input[type="password"],
@@ -125,12 +181,13 @@ input[type="text"] {
   width: 100%;
   background: #0f1116;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 4px;
   color: var(--text);
   padding: 12px 14px;
   font-size: 15px;
   font-family: var(--font-mono), monospace;
   outline: none;
+  transition: border-color 0.2s ease;
 }
 
 input[type="password"]:focus,
@@ -144,16 +201,17 @@ button {
   background: var(--calm);
   color: #0f1116;
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 13px 14px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   font-family: var(--font-sans), sans-serif;
   cursor: pointer;
+  transition: opacity 0.2s ease;
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -169,10 +227,67 @@ input:focus-visible {
   color: var(--text-dim);
 }
 
+/* Warning Block Merah Transparan */
+.warning-block {
+  margin-top: 24px;
+  padding: 14px 16px;
+  background: rgba(255, 51, 68, 0.08);
+  border-left: 3px solid var(--war);
+  border-radius: 0 4px 4px 0;
+}
+
+.warning-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--war);
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.warning-text {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+/* Target Dissemination Platforms Badges */
+.destinations-wrap {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+
+.destinations-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin: 0 0 10px;
+}
+
+.destinations-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dest-badge {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  background: #0f1116;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+
+/* Footer Link */
 .foot-link {
   display: block;
   text-align: center;
-  margin-top: 22px;
+  margin-top: 24px;
   font-size: 12px;
   color: var(--text-dim);
   text-decoration: none;
@@ -182,75 +297,7 @@ input:focus-visible {
   color: var(--text);
 }
 
-.file-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 14px;
-}
-
-.file-row:last-child {
-  border-bottom: none;
-}
-
-.file-name {
-  font-family: var(--font-mono), monospace;
-}
-
-.remove-btn {
-  width: auto;
-  background: transparent;
-  color: var(--warn);
-  border: 1px solid var(--warn);
-  padding: 5px 10px;
-  font-size: 12px;
-  margin-top: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pulse-line {
-    animation: none;
-  }
-}
-.panel {
-  position: relative;
-}
-
-.panel::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 24px;
-  right: 24px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--calm), transparent);
-  opacity: 0.6;
-}
-
-.warning-block {
-  margin-top: 20px;
-  padding: 14px 16px;
-  border-left: 2px solid var(--warn);
-}
-
-.warning-label {
-  font-family: var(--font-mono), monospace;
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  color: var(--war);
-  margin: 0 0 6px;
-}
-
-.warning-text {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-dim);
-  margin: 0;
-}
-
- /* Container Daftar File */
+/* Admin: File List & Remove Button Styling */
 .file-list {
   display: flex;
   flex-direction: column;
@@ -258,7 +305,6 @@ input:focus-visible {
   margin-bottom: 16px;
 }
 
-/* Row File + Tombol Hapus Ringkas di Samping */
 .file-row {
   display: flex;
   justify-content: space-between;
@@ -280,28 +326,27 @@ input:focus-visible {
   flex: 1;
 }
 
-/* Tombol Hapus Kecil di Kanan File */
 .remove-btn {
-  width: auto !important;
-  margin-top: 0 !important;
-  background: transparent !important;
-  color: var(--war) !important;
-  border: 1px solid rgba(255, 51, 68, 0.4) !important;
-  padding: 4px 10px !important;
-  font-size: 11px !important;
-  font-family: var(--font-mono), monospace !important;
-  border-radius: 3px !important;
+  width: auto;
+  margin-top: 0;
+  background: transparent;
+  color: var(--war);
+  border: 1px solid rgba(255, 51, 68, 0.4);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono), monospace;
+  border-radius: 3px;
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
 .remove-btn:hover:not(:disabled) {
-  background: rgba(255, 51, 68, 0.15) !important;
-  border-color: var(--war) !important;
+  background: rgba(255, 51, 68, 0.15);
+  border-color: var(--war);
 }
 
-/* Custom File Picker Component */
+/* Admin: Custom File Picker */
 .custom-file-picker {
   display: flex;
   align-items: center;
@@ -340,4 +385,11 @@ input:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-line,
+  .status-dot.armed {
+    animation: none;
+  }
 }
