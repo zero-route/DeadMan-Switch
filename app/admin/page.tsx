@@ -132,7 +132,7 @@ export default function Admin() {
             Pilih File
           </label>
           <span className="file-picker-name">
-            {selectedFile ? selectedFile.name : "Tidak ada file dipіль"}
+            {selectedFile ? selectedFile.name : "Tidak ada file dipіlih"}
           </span>
         </div>
 
