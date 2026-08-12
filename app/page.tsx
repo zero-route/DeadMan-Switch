@@ -19,7 +19,7 @@ function formatRemaining(ms: number): string {
   const seconds = totalSeconds % 60;
   const pad = (n: number) => n.toString().padStart(2, "0");
   return days > 0
-    ? `${days}h ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+    ? `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
     : `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
@@ -34,7 +34,6 @@ export default function Home() {
     const res = await fetch(`/api/status?t=${Date.now()}`, { cache: "no-store" });
     if (res.ok) setStatus(await res.json());
   }, []);
-
 
   useEffect(() => {
     fetchStatus();
@@ -55,11 +54,11 @@ export default function Home() {
     setMessage("");
     try {
       const res = await fetch("/api/checkin", {
-  method: "POST",
-  cache: "no-store",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ pin }),
-});
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
       const data = await res.json();
       if (!res.ok) {
         setMessage(data.error || "Gagal absen.");
@@ -82,8 +81,10 @@ export default function Home() {
     <main className="screen">
       <div className={`panel ${isUrgent ? "urgent" : ""}`}>
         <p className="eyebrow">Deadman Switch</p>
+
         <h1 className={triggered ? "status-triggered" : "status-armed"}>
-          {triggered ? "TRIGGERED — file terkirim" : "ARMED — menunggu absen"}
+          <span className={`status-dot ${triggered ? "triggered" : "armed"}`} />
+          {triggered ? "TRIGGERED — FILE TERKIRIM" : "ARMED — MENUNGGU ABSEN"}
         </h1>
 
         <div className="pulse-wrap">
@@ -95,7 +96,7 @@ export default function Home() {
             <polyline
               points="0,28 40,28 55,8 70,48 85,28 200,28 240,28 255,8 270,48 285,28 400,28 440,28 455,8 470,48 485,28 600,28 640,28 655,8 670,48 685,28 800,28"
               fill="none"
-              stroke={triggered ? "var(--warn)" : "var(--calm)"}
+              stroke={triggered ? "var(--war)" : "var(--calm)"}
               strokeWidth="2"
             />
           </svg>
@@ -103,7 +104,7 @@ export default function Home() {
 
         {status && (
           <>
-            <div className="countdown mono" style={{ color: isUrgent ? "var(--warn)" : "var(--text)" }}>
+            <div className="countdown mono" style={{ color: isUrgent ? "var(--war)" : "var(--text)" }}>
               {triggered ? "--:--:--" : formatRemaining(remaining)}
             </div>
             <p className="countdown-label">
@@ -130,16 +131,29 @@ export default function Home() {
           {loading ? "Memproses..." : "Absen Sekarang"}
         </button>
 
-{message && <p className="message">{message}</p>}
+        {message && <p className="message">{message}</p>}
 
-<div className="warning-block">
-  <p className="warning-label">⚠ PERINGATAN</p>
-  <p className="warning-text">
-    Jika hitungan mundur ini mencapai nol tanpa absen, sistem akan mengirim
-    seluruh berkas berbahaya yang tersimpan secara otomatis dan permanen ke internet. Tidak ada peringatan lanjutan. Tidak ada jalan untuk
-    membatalkannya setelah proses dimulai.
-  </p>
-</div>
+        {/* Warning Box Merah Transparan */}
+        <div className="warning-block">
+          <p className="warning-label">⚠ PERINGATAN KRITIS</p>
+          <p className="warning-text">
+            Jika hitungan mundur ini mencapai nol tanpa absen, sistem akan mengirim
+            seluruh berkas yang tersimpan secara otomatis dan permanen ke internet. Tidak ada peringatan lanjutan. Tidak ada jalan untuk membatalkannya setelah proses dimulai.
+          </p>
+        </div>
+
+        {/* Target Destinations */}
+        <div className="destinations-wrap">
+          <p className="destinations-label">TARGET DISSEMINATION PLATFORMS:</p>
+          <div className="destinations-grid">
+            <span className="dest-badge">Telegram Bot</span>
+            <span className="dest-badge">Corporate Portal</span>
+            <span className="dest-badge">X (Twitter)</span>
+            <span className="dest-badge">TikTok</span>
+            <span className="dest-badge">Facebook</span>
+            <span className="dest-badge">Instagram</span>
+          </div>
+        </div>
 
         <Link href="/admin" className="foot-link">
           Kelola file & pengaturan →
