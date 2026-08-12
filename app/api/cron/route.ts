@@ -2,12 +2,38 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, FILES_BUCKET } from "@/lib/supabase";
 import { sendWhatsAppDocument, sendWhatsAppText } from "@/lib/telegram";
+import { sendEmailDocument, sendEmailText } from "@/lib/email";
 
 function isAuthorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return true;
   const header = req.headers.get("authorization");
   return header === `Bearer ${secret}`;
+}
+
+// Helper: kirim via semua channel, lanjut meski salah satu gagal
+async function broadcastText(text: string) {
+  const results = await Promise.allSettled([
+    sendWhatsAppText(text),
+    sendEmailText(text),
+  ]);
+  results.forEach((r, i) => {
+    if (r.status === "rejected") {
+      console.error(`broadcastText channel ${i} failed:`, r.reason);
+    }
+  });
+}
+
+async function broadcastDocument(buffer: Buffer, filename: string, caption?: string | null) {
+  const results = await Promise.allSettled([
+    sendWhatsAppDocument(buffer, filename, caption),
+    sendEmailDocument(buffer, filename, caption),
+  ]);
+  results.forEach((r, i) => {
+    if (r.status === "rejected") {
+      console.error(`broadcastDocument channel ${i} failed:`, r.reason);
+    }
+  });
 }
 
 export async function GET(req: NextRequest) {
@@ -47,11 +73,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (!files || files.length === 0) {
-    await sendWhatsAppText(
+    await broadcastText(
       "⚠️ Deadman switch aktif: check-in terlewat, tapi tidak ada file yang terdaftar untuk dikirim."
     );
   } else {
-    await sendWhatsAppText(
+    await broadcastText(
       `⚠️ Deadman switch aktif. Check-in terlewat sejak ${new Date(deadline).toLocaleString("id-ID")}. Mengirim ${files.length} file berikut ini...`
     );
 
@@ -61,12 +87,12 @@ export async function GET(req: NextRequest) {
         .download(file.storage_path);
 
       if (downloadError || !fileBytes) {
-        await sendWhatsAppText(`Gagal mengambil file: ${file.filename}`);
+        await broadcastText(`Gagal mengambil file: ${file.filename}`);
         continue;
       }
-      
-const buffer = Buffer.from(await fileBytes.arrayBuffer());
-      await sendWhatsAppDocument(buffer, file.filename, file.caption);
+
+      const buffer = Buffer.from(await fileBytes.arrayBuffer());
+      await broadcastDocument(buffer, file.filename, file.caption);
     }
   }
 
