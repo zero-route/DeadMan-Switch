@@ -79,6 +79,7 @@ export default function Admin() {
             value={pin}
             onChange={(e) => setPin(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && loadFiles(pin)}
+            placeholder="Masukkan PIN Admin"
           />
           <button onClick={() => loadFiles(pin)}>Masuk</button>
           {message && <p className="message">{message}</p>}
@@ -97,26 +98,44 @@ export default function Admin() {
         <h1>File yang akan dikirim</h1>
 
         {files.length === 0 && <p className="message">Belum ada file terdaftar.</p>}
-        {files.map((f) => (
-          <div className="file-row" key={f.id}>
-            <span className="file-name">{f.filename}</span>
-            <button className="remove-btn" onClick={() => handleDelete(f)} disabled={busy}>
-              Hapus
-            </button>
-          </div>
-        ))}
+        
+        <div className="file-list">
+          {files.map((f) => (
+            <div className="file-row" key={f.id}>
+              <span className="file-name" title={f.filename}>
+                {f.filename}
+              </span>
+              <button
+                className="remove-btn"
+                onClick={() => handleDelete(f)}
+                disabled={busy}
+              >
+                Hapus
+              </button>
+            </div>
+          ))}
+        </div>
 
         <hr className="divider" />
 
-        <label className="field-label" htmlFor="file">
-          Tambah file (PDF, DOC, dll)
-        </label>
-        <input
-          id="file"
-          type="file"
-          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-          style={{ marginBottom: 10 }}
-        />
+        <label className="field-label">Tambah file (PDF, DOC, dll)</label>
+        
+        {/* Custom Input File Picker */}
+        <div className="custom-file-picker">
+          <input
+            id="file"
+            type="file"
+            className="file-input-hidden"
+            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+          />
+          <label htmlFor="file" className="file-picker-btn">
+            Pilih File
+          </label>
+          <span className="file-picker-name">
+            {selectedFile ? selectedFile.name : "Tidak ada file dipіль"}
+          </span>
+        </div>
+
         <label className="field-label" htmlFor="caption">
           Caption (opsional)
         </label>
@@ -127,6 +146,7 @@ export default function Admin() {
           onChange={(e) => setCaption(e.target.value)}
           placeholder="Pesan singkat untuk file ini"
         />
+
         <button onClick={handleUpload} disabled={busy || !selectedFile}>
           {busy ? "Mengunggah..." : "Unggah"}
         </button>
