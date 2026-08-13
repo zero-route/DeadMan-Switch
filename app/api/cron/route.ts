@@ -11,19 +11,16 @@ function isAuthorized(req: NextRequest): boolean {
   return header === `Bearer ${secret}`;
 }
 
-// Helper: kirim via semua channel, lanjut meski salah satu gagal
-async function broadcastText(text: string) {
-  const results = await Promise.allSettled([
-    sendWhatsAppText(text),
-    sendEmailText(text),
-  ]);
-  results.forEach((r, i) => {
-    if (r.status === "rejected") {
-      console.error(`broadcastText channel ${i} failed:`, r.reason);
-    }
-  });
+// Kirim teks hanya via Telegram (bukan email)
+async function broadcastTextTelegramOnly(text: string) {
+  try {
+    await sendWhatsAppText(text);
+  } catch (e) {
+    console.error("broadcastTextTelegramOnly failed:", e);
+  }
 }
 
+// Kirim file via Telegram + Email sekaligus (email sudah include teks notifikasi)
 async function broadcastDocument(buffer: Buffer, filename: string, caption?: string | null) {
   const results = await Promise.allSettled([
     sendWhatsAppDocument(buffer, filename, caption),
@@ -73,13 +70,14 @@ export async function GET(req: NextRequest) {
   }
 
   if (!files || files.length === 0) {
-    await broadcastText(
-      "⚠️ Deadman switch aktif: check-in terlewat, tapi tidak ada file yang terdaftar untuk dikirim."
-    );
+    // Tidak ada file: kirim teks ke Telegram + email teks saja
+    const msg = "⚠️ Deadman switch aktif: check-in terlewat, tapi tidak ada file yang terdaftar untuk dikirim.";
+    await broadcastTextTelegramOnly(msg);
+    try { await sendEmailText(msg); } catch (e) { console.error("sendEmailText failed:", e); }
   } else {
-    await broadcastText(
-      `⚠️ Deadman switch aktif. Check-in terlewat sejak ${new Date(deadline).toLocaleString("id-ID")}. Mengirim ${files.length} file berikut ini...`
-    );
+    // Ada file: teks notifikasi hanya ke Telegram, email hanya terkirim bersama file
+    const notifText = `⚠️ Deadman switch aktif. Check-in terlewat sejak ${new Date(deadline).toLocaleString("id-ID")}. Mengirim ${files.length} file berikut ini...`;
+    await broadcastTextTelegramOnly(notifText);
 
     for (const file of files) {
       const { data: fileBytes, error: downloadError } = await supabase.storage
@@ -87,7 +85,7 @@ export async function GET(req: NextRequest) {
         .download(file.storage_path);
 
       if (downloadError || !fileBytes) {
-        await broadcastText(`Gagal mengambil file: ${file.filename}`);
+        await broadcastTextTelegramOnly(`Gagal mengambil file: ${file.filename}`);
         continue;
       }
 
