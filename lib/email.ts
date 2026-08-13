@@ -1,9 +1,15 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-function getResend() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("Missing RESEND_API_KEY env var");
-  return new Resend(apiKey);
+function getTransporter() {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) {
+    throw new Error("Missing GMAIL_USER or GMAIL_APP_PASSWORD env vars");
+  }
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  });
 }
 
 function getRecipients(): string[] {
@@ -13,35 +19,31 @@ function getRecipients(): string[] {
   return list;
 }
 
-function getFrom(): string {
-  return process.env.EMAIL_FROM || "Deadman Switch <onboarding@resend.dev>";
-}
-
 // Kirim teks notifikasi ke semua penerima
 export async function sendEmailText(text: string) {
-  const resend = getResend();
+  const transporter = getTransporter();
   const to = getRecipients();
 
-  await resend.emails.send({
-    from: getFrom(),
-    to,
+  await transporter.sendMail({
+    from: `"Deadman Switch" <${process.env.GMAIL_USER}>`,
+    to: to.join(","),
     subject: "⚠️ Deadman Switch Aktif",
     text,
   });
 }
 
-// Kirim satu file sebagai attachment ke semua penerima
+// Kirim file sebagai attachment ke semua penerima
 export async function sendEmailDocument(
   fileBuffer: Buffer,
   filename: string,
   caption?: string | null
 ) {
-  const resend = getResend();
+  const transporter = getTransporter();
   const to = getRecipients();
 
-  await resend.emails.send({
-    from: getFrom(),
-    to,
+  await transporter.sendMail({
+    from: `"Deadman Switch" <${process.env.GMAIL_USER}>`,
+    to: to.join(","),
     subject: `⚠️ Deadman Switch — ${filename}`,
     text: caption || `File terlampir: ${filename}`,
     attachments: [
