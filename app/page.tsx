@@ -84,7 +84,7 @@ export default function Home() {
         const pct = (elapsed / DURATION) * 100;
         const resolved = Math.floor((pct - 70) / (30 / 8)); // resolve mulai 70%
         return LINE_LABELS.map((_, i) =>
-          i < Math.max(0, resolved) ? "For All" : randStr(18)
+          i < Math.max(0, resolved) ? "Zero Day 200OK" : randStr(18)
         );
       });
     }, 80);
