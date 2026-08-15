@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 
 type Status = {
@@ -23,38 +23,115 @@ function formatRemaining(ms: number): string {
     : `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
+// Random chars untuk animasi scanning
+const SCAN_CHARS = "ABCDEF0123456789:.-_#!%*";
+function randStr(len: number) {
+  return Array.from({ length: len }, () =>
+    SCAN_CHARS[Math.floor(Math.random() * SCAN_CHARS.length)]
+  ).join("");
+}
+
+const LINE_LABELS = [
+  "SYS.INIT ",
+  "AUTH.KEY ",
+  "HANDSHAKE",
+  "MANIFEST ",
+  "ENCRYPT  ",
+  "VERIFY   ",
+  "DEADMAN  ",
+  "SWITCH   ",
+];
+
 export default function Home() {
-  const [status, setStatus] = useState<Status | null>(null);
+  // ── Loading screen state ──
+  const [loadPct, setLoadPct]           = useState(0);
+  const [lines, setLines]               = useState<string[]>(Array(8).fill(""));
+  const [resolvedCount, setResolvedCount] = useState(0);
+  const [loadingDone, setLoadingDone]   = useState(false);
+  const [visible, setVisible]           = useState(true); // loading screen visible
+
+  // ── Main page state ──
+  const [status, setStatus]   = useState<Status | null>(null);
   const [remaining, setRemaining] = useState(0);
-  const [pin, setPin] = useState("");
+  const [pin, setPin]         = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [tick, setTick] = useState(true);
 
   const fetchStatus = useCallback(async () => {
     const res = await fetch(`/api/status?t=${Date.now()}`, { cache: "no-store" });
     if (res.ok) setStatus(await res.json());
   }, []);
 
+  // ── Loading screen orchestration ──
   useEffect(() => {
-    fetchStatus();
-    const poll = setInterval(fetchStatus, 30000);
-    return () => clearInterval(poll);
+    fetchStatus(); // fetch di background selagi loading screen jalan
+
+    const DURATION = 2200; // ms total loading
+    const start = Date.now();
+
+    // Progress bar
+    const progInterval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min(100, Math.round((elapsed / DURATION) * 100));
+      setLoadPct(pct);
+      if (pct >= 100) clearInterval(progInterval);
+    }, 20);
+
+    // Scramble lines
+    const scrambleInterval = setInterval(() => {
+      setLines(prev => {
+        const elapsed = Date.now() - start;
+        const pct = (elapsed / DURATION) * 100;
+        const resolved = Math.floor((pct - 70) / (30 / 8)); // resolve mulai 70%
+        return LINE_LABELS.map((_, i) =>
+          i < Math.max(0, resolved) ? "For All" : randStr(18)
+        );
+      });
+    }, 80);
+
+    // Track resolved count for coloring
+    const resolveInterval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const pct = (elapsed / DURATION) * 100;
+      const r = Math.max(0, Math.floor((pct - 70) / (30 / 8)));
+      setResolvedCount(Math.min(8, r));
+    }, 80);
+
+    // Done
+    const doneTimeout = setTimeout(() => {
+      clearInterval(scrambleInterval);
+      clearInterval(resolveInterval);
+      setLines(Array(8).fill("For All"));
+      setResolvedCount(8);
+      setLoadingDone(true);
+
+      // Fade out loading screen setelah 400ms
+      setTimeout(() => setVisible(false), 500);
+    }, DURATION);
+
+    return () => {
+      clearInterval(progInterval);
+      clearInterval(scrambleInterval);
+      clearInterval(resolveInterval);
+      clearTimeout(doneTimeout);
+    };
   }, [fetchStatus]);
 
+  // ── Main page countdown ──
   useEffect(() => {
     if (!status) return;
-    const tickFn = () => setRemaining(new Date(status.deadline).getTime() - Date.now());
-    tickFn();
-    const id = setInterval(tickFn, 1000);
+    const tick = () => setRemaining(new Date(status.deadline).getTime() - Date.now());
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [status]);
 
-  // Blink effect untuk colon di countdown
   useEffect(() => {
-    const id = setInterval(() => setTick(t => !t), 500);
-    return () => clearInterval(id);
-  }, []);
+    if (!visible) {
+      const poll = setInterval(fetchStatus, 30000);
+      return () => clearInterval(poll);
+    }
+  }, [visible, fetchStatus]);
 
   async function handleCheckin() {
     setLoading(true);
@@ -81,14 +158,14 @@ export default function Home() {
     }
   }
 
-  const triggered = status?.triggered;
-  const isUrgent = !triggered && remaining < 1000 * 60 * 60 * 3;
+  const triggered = status?.triggered ?? false;
+  const isUrgent  = !triggered && remaining < 1000 * 60 * 60 * 3;
 
   return (
     <>
       <style>{`
-        /* ── Grid background ── */
-        .ds-root {
+        /* ── Shared base ── */
+        .ds-base {
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -96,13 +173,157 @@ export default function Home() {
           padding: 32px 16px;
           background-color: #07090d;
           background-image:
-            linear-gradient(rgba(0, 210, 130, 0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 210, 130, 0.04) 1px, transparent 1px);
+            linear-gradient(rgba(0,210,130,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,210,130,0.04) 1px, transparent 1px);
           background-size: 44px 44px;
           font-family: 'Inter', sans-serif;
         }
 
-        /* ── Panel ── */
+        /* ══ LOADING SCREEN ══ */
+        .ld-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          background-color: #07090d;
+          background-image:
+            linear-gradient(rgba(0,210,130,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,210,130,0.04) 1px, transparent 1px);
+          background-size: 44px 44px;
+          transition: opacity 0.4s ease;
+        }
+
+        .ld-overlay.fade-out {
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .ld-panel {
+          width: 100%;
+          max-width: 420px;
+          background: #0c0f14;
+          border: 1px solid #1c2333;
+          border-radius: 4px;
+          padding: 24px;
+          position: relative;
+          box-shadow: 0 0 0 1px #0f1520, 0 24px 48px rgba(0,0,0,0.6);
+        }
+
+        .ld-panel::before {
+          content: '';
+          position: absolute;
+          top: -1px; left: -1px;
+          width: 20px; height: 20px;
+          border-top: 2px solid #00d082;
+          border-left: 2px solid #00d082;
+          border-radius: 3px 0 0 0;
+        }
+
+        .ld-header {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          color: #3d5066;
+          text-transform: uppercase;
+          margin: 0 0 16px;
+        }
+
+        /* Progress bar */
+        .ld-bar-wrap {
+          margin-bottom: 16px;
+        }
+
+        .ld-bar-track {
+          background: #080b10;
+          border: 1px solid #1c2333;
+          border-radius: 2px;
+          height: 4px;
+          overflow: hidden;
+          margin-bottom: 6px;
+        }
+
+        .ld-bar-fill {
+          height: 100%;
+          background: #00d082;
+          transition: width 0.08s linear;
+          box-shadow: 0 0 8px rgba(0,208,130,0.5);
+        }
+
+        .ld-bar-label {
+          display: flex;
+          justify-content: space-between;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px;
+          color: #3d5066;
+        }
+
+        /* Terminal scan box */
+        .ld-terminal {
+          background: #080b10;
+          border: 1px solid #1c2333;
+          border-radius: 3px;
+          padding: 14px;
+          margin-bottom: 12px;
+        }
+
+        .ld-terminal-header {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 9px;
+          color: #2a3a4d;
+          letter-spacing: 0.1em;
+          margin-bottom: 10px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid #1c2333;
+        }
+
+        .ld-line {
+          display: flex;
+          gap: 8px;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          line-height: 1.8;
+          white-space: nowrap;
+          overflow: hidden;
+        }
+
+        .ld-line-label {
+          color: #2a3a4d;
+          flex-shrink: 0;
+        }
+
+        .ld-line-arrow {
+          color: #1c2333;
+          flex-shrink: 0;
+        }
+
+        .ld-line-val {
+          color: #3d5066;
+          flex: 1;
+          overflow: hidden;
+          text-overflow: clip;
+          transition: color 0.3s;
+        }
+
+        .ld-line-val.resolved {
+          color: #f59e0b;
+          text-shadow: 0 0 8px rgba(245,158,11,0.4);
+        }
+
+        .ld-status {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: #3d5066;
+          text-align: right;
+        }
+
+        .ld-status.done {
+          color: #f59e0b;
+        }
+
+        /* ══ MAIN PAGE ══ */
         .ds-panel {
           width: 100%;
           max-width: 420px;
@@ -114,7 +335,6 @@ export default function Home() {
           box-shadow: 0 0 0 1px #0f1520, 0 24px 48px rgba(0,0,0,0.6);
         }
 
-        /* corner accent kiri atas */
         .ds-panel::before {
           content: '';
           position: absolute;
@@ -125,7 +345,6 @@ export default function Home() {
           border-radius: 3px 0 0 0;
         }
 
-        /* corner accent kanan bawah */
         .ds-panel::after {
           content: '';
           position: absolute;
@@ -141,11 +360,8 @@ export default function Home() {
           box-shadow: 0 0 0 1px #1a0a0a, 0 0 32px rgba(220,38,38,0.08), 0 24px 48px rgba(0,0,0,0.6);
         }
 
-        .ds-panel.urgent::before {
-          border-color: #dc2626;
-        }
+        .ds-panel.urgent::before { border-color: #dc2626; }
 
-        /* ── Eyebrow ── */
         .ds-eyebrow {
           font-family: 'IBM Plex Mono', monospace;
           font-size: 10px;
@@ -155,7 +371,6 @@ export default function Home() {
           margin: 0 0 10px;
         }
 
-        /* ── Status heading ── */
         .ds-status {
           display: flex;
           align-items: center;
@@ -186,35 +401,27 @@ export default function Home() {
 
         @keyframes pulse-dot {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
+          50%       { opacity: 0.4; }
         }
 
-        .ds-status.armed { color: #00d082; }
+        .ds-status.armed    { color: #00d082; }
         .ds-status.triggered { color: #dc2626; }
 
-        /* ── EKG pulse line ── */
-       .ds-pulse {
-  margin: 0 0 20px;
-  height: 36px;
-  overflow: hidden;
-}
-
-.ds-pulse-anim {
-  animation: ekg-scroll 3.5s linear infinite;
-}
-
-@keyframes ekg-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
-        .ds-pulse svg {
-          width: 100%;
+        .ds-pulse {
+          margin: 0 0 20px;
           height: 36px;
           overflow: hidden;
         }
 
-        /* ── Countdown ── */
+        .ds-pulse-anim {
+          animation: ekg-scroll 3.5s linear infinite;
+        }
+
+        @keyframes ekg-scroll {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+
         .ds-countdown {
           font-family: 'IBM Plex Mono', monospace;
           font-size: 48px;
@@ -238,14 +445,12 @@ export default function Home() {
           line-height: 1.5;
         }
 
-        /* ── Divider ── */
         .ds-divider {
           border: none;
           border-top: 1px solid #1c2333;
           margin: 0 0 18px;
         }
 
-        /* ── Form ── */
         .ds-label {
           display: block;
           font-size: 10px;
@@ -271,10 +476,7 @@ export default function Home() {
           box-sizing: border-box;
         }
 
-        .ds-input:focus {
-          border-color: #00d082;
-        }
-
+        .ds-input:focus { border-color: #00d082; }
         .ds-input::placeholder { color: #2a3a4d; }
 
         .ds-btn {
@@ -290,8 +492,8 @@ export default function Home() {
           background: #00d082;
           color: #07090d;
           transition: opacity 0.15s, filter 0.15s;
-          margin-bottom: 4px;
           margin-top: 0;
+          margin-bottom: 4px;
         }
 
         .ds-btn:hover:not(:disabled) { filter: brightness(1.1); }
@@ -304,7 +506,6 @@ export default function Home() {
           font-family: 'IBM Plex Mono', monospace;
         }
 
-        /* ── Warning block — redesigned ── */
         .ds-warning {
           margin-top: 20px;
           border-left: 3px solid #dc2626;
@@ -315,7 +516,6 @@ export default function Home() {
           overflow: hidden;
         }
 
-        /* subtle scanline texture */
         .ds-warning::before {
           content: '';
           position: absolute;
@@ -347,7 +547,7 @@ export default function Home() {
 
         @keyframes blink {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
+          50%       { opacity: 0; }
         }
 
         .ds-warning-title {
@@ -367,15 +567,9 @@ export default function Home() {
           position: relative;
         }
 
-        .ds-warning-text strong {
-          color: #c0cad4;
-          font-weight: 600;
-        }
+        .ds-warning-text strong { color: #c0cad4; font-weight: 600; }
 
-        /* ── Destinations ── */
-        .ds-dest-wrap {
-          margin-top: 18px;
-        }
+        .ds-dest-wrap  { margin-top: 18px; }
 
         .ds-dest-label {
           font-family: 'IBM Plex Mono', monospace;
@@ -386,11 +580,7 @@ export default function Home() {
           margin: 0 0 8px;
         }
 
-        .ds-dest-grid {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-        }
+        .ds-dest-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 
         .ds-badge {
           font-family: 'IBM Plex Mono', monospace;
@@ -399,11 +589,9 @@ export default function Home() {
           border: 1px solid #1c2333;
           border-radius: 2px;
           padding: 3px 8px;
-          letter-spacing: 0.04em;
           background: #080b10;
         }
 
-        /* ── Footer link ── */
         .ds-foot {
           display: block;
           text-align: center;
@@ -419,95 +607,134 @@ export default function Home() {
         .ds-foot:hover { color: #00d082; }
       `}</style>
 
-      <main className="ds-root">
-        <div className={`ds-panel${isUrgent ? " urgent" : ""}`}>
+      {/* ══ LOADING SCREEN ══ */}
+      {visible && (
+        <div className={`ld-overlay${loadingDone ? " fade-out" : ""}`}>
+          <div className="ld-panel">
+            <p className="ld-header">// DEADMAN SWITCH — SYSTEM INIT</p>
 
-          <p className="ds-eyebrow">// DEADMAN SWITCH v1.0</p>
-
-          <h1 className={`ds-status ${triggered ? "triggered" : "armed"}`}>
-            <span className={`ds-dot ${triggered ? "triggered" : "armed"}`} />
-            {triggered ? "TRIGGERED — FILE TERKIRIM" : "ARMED — MENUNGGU ABSEN"}
-          </h1>
-
-          {/* EKG Line */}
-<div className="ds-pulse">
-  <svg
-    className={triggered ? "" : "ds-pulse-anim"}
-    viewBox="0 0 400 36"
-    preserveAspectRatio="none"
-    style={{ width: "200%", height: "36px", display: "block" }}
-  >
-    <polyline
-      points="0,18 50,18 62,5 68,31 76,18 120,18 128,22 136,18 200,18 212,8 218,28 224,18 260,18 265,14 272,22 278,18 400,18 450,18 462,5 468,31 476,18 520,18 528,22 536,18 600,18 612,8 618,28 624,18 660,18 665,14 672,22 678,18 800,18"
-      fill="none"
-      stroke={triggered ? "#dc2626" : isUrgent ? "#dc2626" : "#00d082"}
-      strokeWidth="1.5"
-      opacity="0.7"
-    />
-  </svg>
-</div>
-
-          {/* Countdown */}
-          {status && (
-            <>
-              <div className={`ds-countdown ${isUrgent ? "urgent" : "normal"}`}>
-                {triggered ? "--:--:--" : formatRemaining(remaining)}
+            {/* Progress bar */}
+            <div className="ld-bar-wrap">
+              <div className="ld-bar-track">
+                <div className="ld-bar-fill" style={{ width: `${loadPct}%` }} />
               </div>
-              <p className="ds-countdown-label">
-                sisa waktu sebelum switch aktif &nbsp;·&nbsp; absen terakhir{" "}
-                {new Date(status.last_checkin).toLocaleString("id-ID")}
-              </p>
-            </>
-          )}
-
-          <hr className="ds-divider" />
-
-          {/* Form absen */}
-          <label className="ds-label" htmlFor="pin">PIN</label>
-          <input
-            id="pin"
-            className="ds-input"
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="············"
-            onKeyDown={(e) => e.key === "Enter" && handleCheckin()}
-          />
-          <button className="ds-btn" onClick={handleCheckin} disabled={loading || !pin}>
-            {loading ? "MEMPROSES..." : "ABSEN SEKARANG"}
-          </button>
-
-          {message && <p className="ds-message">› {message}</p>}
-
-          {/* Warning block */}
-          <div className="ds-warning">
-            <div className="ds-warning-header">
-              <span className="ds-warning-dot" />
-              <span className="ds-warning-title">Peringatan</span>
+              <div className="ld-bar-label">
+                <span>LOADING SEQUENCE</span>
+                <span>{loadPct}%</span>
+              </div>
             </div>
-            <p className="ds-warning-text">
-              Jika hitungan mundur mencapai nol tanpa absen, sistem akan mengirim{" "}
-              <strong>seluruh berkas yang tersimpan</strong> secara otomatis dan permanen.{" "}
-              <strong>Tidak ada peringatan lanjutan. Tidak ada pembatalan</strong> setelah
-              proses dimulai.
-            </p>
-          </div>
 
-          {/* Target destinations */}
-          <div className="ds-dest-wrap">
-            <p className="ds-dest-label">Target dissemination</p>
-            <div className="ds-dest-grid">
-              {["Telegram Bot", "Corporate Portal", "X (Twitter)", "TikTok", "Facebook", "Instagram"].map((d) => (
-                <span key={d} className="ds-badge">{d}</span>
+            {/* Terminal scan box */}
+            <div className="ld-terminal">
+              <div className="ld-terminal-header">
+                AIRSWITCH-DM 1.0 &nbsp;·&nbsp; SCANNING HANDSHAKE...
+              </div>
+              {LINE_LABELS.map((label, i) => (
+                <div className="ld-line" key={i}>
+                  <span className="ld-line-label">[{label}]</span>
+                  <span className="ld-line-arrow">▶</span>
+                  <span className={`ld-line-val${i < resolvedCount ? " resolved" : ""}`}>
+                    {lines[i] || randStr(18)}
+                  </span>
+                </div>
               ))}
             </div>
-          </div>
 
-          <Link href="/admin" className="ds-foot">
-            Kelola file & pengaturan →
-          </Link>
+            <p className={`ld-status${loadingDone ? " done" : ""}`}>
+              {loadingDone ? "✓ KEY FOUND: For All" : "MATCHING KEY..."}
+            </p>
+          </div>
         </div>
-      </main>
+      )}
+
+      {/* ══ MAIN PAGE ══ */}
+      {!visible && (
+        <main className="ds-base">
+          <div className={`ds-panel${isUrgent ? " urgent" : ""}`}>
+            <p className="ds-eyebrow">// DEADMAN SWITCH v1.0</p>
+
+            <h1 className={`ds-status ${triggered ? "triggered" : "armed"}`}>
+              <span className={`ds-dot ${triggered ? "triggered" : "armed"}`} />
+              {triggered ? "TRIGGERED — FILE TERKIRIM" : "ARMED — MENUNGGU ABSEN"}
+            </h1>
+
+            {/* EKG */}
+            <div className="ds-pulse">
+              <svg
+                className={triggered ? "" : "ds-pulse-anim"}
+                viewBox="0 0 400 36"
+                preserveAspectRatio="none"
+                style={{ width: "200%", height: "36px", display: "block" }}
+              >
+                <polyline
+                  points="0,18 50,18 62,5 68,31 76,18 120,18 128,22 136,18 200,18 212,8 218,28 224,18 260,18 265,14 272,22 278,18 400,18 450,18 462,5 468,31 476,18 520,18 528,22 536,18 600,18 612,8 618,28 624,18 660,18 665,14 672,22 678,18 800,18"
+                  fill="none"
+                  stroke={triggered ? "#dc2626" : isUrgent ? "#dc2626" : "#00d082"}
+                  strokeWidth="1.5"
+                  opacity="0.7"
+                />
+              </svg>
+            </div>
+
+            {/* Countdown */}
+            {status && (
+              <>
+                <div className={`ds-countdown ${isUrgent ? "urgent" : "normal"}`}>
+                  {triggered ? "--:--:--" : formatRemaining(remaining)}
+                </div>
+                <p className="ds-countdown-label">
+                  sisa waktu sebelum switch aktif &nbsp;·&nbsp; absen terakhir{" "}
+                  {new Date(status.last_checkin).toLocaleString("id-ID")}
+                </p>
+              </>
+            )}
+
+            <hr className="ds-divider" />
+
+            <label className="ds-label" htmlFor="pin">PIN</label>
+            <input
+              id="pin"
+              className="ds-input"
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="············"
+              onKeyDown={(e) => e.key === "Enter" && handleCheckin()}
+            />
+            <button className="ds-btn" onClick={handleCheckin} disabled={loading || !pin}>
+              {loading ? "MEMPROSES..." : "ABSEN SEKARANG"}
+            </button>
+
+            {message && <p className="ds-message">› {message}</p>}
+
+            <div className="ds-warning">
+              <div className="ds-warning-header">
+                <span className="ds-warning-dot" />
+                <span className="ds-warning-title">Peringatan</span>
+              </div>
+              <p className="ds-warning-text">
+                Jika hitungan mundur mencapai nol tanpa absen, sistem akan mengirim{" "}
+                <strong>seluruh berkas yang tersimpan</strong> secara otomatis dan permanen.{" "}
+                <strong>Tidak ada peringatan lanjutan. Tidak ada pembatalan</strong> setelah
+                proses dimulai.
+              </p>
+            </div>
+
+            <div className="ds-dest-wrap">
+              <p className="ds-dest-label">Target dissemination</p>
+              <div className="ds-dest-grid">
+                {["Telegram Bot","Corporate Portal","X (Twitter)","TikTok","Facebook","Instagram"].map((d) => (
+                  <span key={d} className="ds-badge">{d}</span>
+                ))}
+              </div>
+            </div>
+
+            <Link href="/admin" className="ds-foot">
+              Kelola file & pengaturan →
+            </Link>
+          </div>
+        </main>
+      )}
     </>
   );
 }
