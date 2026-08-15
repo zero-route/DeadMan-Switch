@@ -416,10 +416,11 @@ export default function Home() {
         .ds-pulse-anim {
           animation: ekg-scroll 3.5s linear infinite;
         }
-@keyframes ekg-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
+
+        @keyframes ekg-scroll {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
 
         .ds-countdown {
           font-family: 'IBM Plex Mono', monospace;
@@ -660,12 +661,11 @@ export default function Home() {
             {/* EKG */}
             <div className="ds-pulse">
               <svg
-              className={triggered ? "" : "ds-pulse-anim"}
-              viewBox="0 0 800 36"
-style={{ width: "200%", height: "36px", display: "block" }}
-              preserveAspectRatio="none"
-              style={{ width: "300%", height: "36px", display: "block" }}
-                >
+                className={triggered ? "" : "ds-pulse-anim"}
+                viewBox="0 0 800 36"
+                preserveAspectRatio="none"
+                style={{ width: "200%", height: "36px", display: "block" }}
+              >
                 <polyline
                   points="0,18 35,18 48,4 55,32 63,18 110,18 119,22 128,18 185,18 196,8 202,28 210,18 248,18 254,14 261,22 268,18 300,18 335,18 348,4 355,32 363,18 400,18 435,18 448,4 455,32 463,18 510,18 519,22 528,18 585,18 596,8 602,28 610,18 648,18 654,14 661,22 668,18 700,18 735,18 748,4 755,32 763,18 800,18"
                   fill="none"
