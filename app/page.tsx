@@ -84,7 +84,7 @@ export default function Home() {
         const pct = (elapsed / DURATION) * 100;
         const resolved = Math.floor((pct - 70) / (30 / 8)); // resolve mulai 70%
         return LINE_LABELS.map((_, i) =>
-          i < Math.max(0, resolved) ? "Zero Day 200OK" : randStr(18)
+          i < Math.max(0, resolved) ? "Zero Day 200" : randStr(18)
         );
       });
     }, 80);
@@ -101,7 +101,7 @@ export default function Home() {
     const doneTimeout = setTimeout(() => {
       clearInterval(scrambleInterval);
       clearInterval(resolveInterval);
-      setLines(Array(8).fill("For All"));
+      setLines(Array(8).fill("Zero Day 200OK"));
       setResolvedCount(8);
       setLoadingDone(true);
 
@@ -641,7 +641,7 @@ export default function Home() {
             </div>
 
             <p className={`ld-status${loadingDone ? " done" : ""}`}>
-              {loadingDone ? "✓ KEY FOUND: For All" : "MATCHING KEY..."}
+              {loadingDone ? "✓ KEY FOUND: Zero Day 200OK" : "MATCHING KEY..."}
             </p>
           </div>
         </div>
