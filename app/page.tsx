@@ -193,10 +193,20 @@ export default function Home() {
         .ds-status.triggered { color: #dc2626; }
 
         /* ── EKG pulse line ── */
-        .ds-pulse {
-          margin: 0 0 20px;
-          height: 36px;
-        }
+       .ds-pulse {
+  margin: 0 0 20px;
+  height: 36px;
+  overflow: hidden;
+}
+
+.ds-pulse-anim {
+  animation: ekg-scroll 3.5s linear infinite;
+}
+
+@keyframes ekg-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
 
         .ds-pulse svg {
           width: 100%;
@@ -420,17 +430,22 @@ export default function Home() {
           </h1>
 
           {/* EKG Line */}
-          <div className="ds-pulse">
-            <svg viewBox="0 0 400 36" preserveAspectRatio="none">
-              <polyline
-                points="0,18 30,18 42,4 52,32 62,18 160,18 172,4 182,32 192,18 400,18"
-                fill="none"
-                stroke={triggered ? "#dc2626" : isUrgent ? "#dc2626" : "#00d082"}
-                strokeWidth="1.5"
-                opacity={triggered ? "0.4" : "0.7"}
-              />
-            </svg>
-          </div>
+<div className="ds-pulse">
+  <svg
+    className={triggered ? "" : "ds-pulse-anim"}
+    viewBox="0 0 400 36"
+    preserveAspectRatio="none"
+    style={{ width: "200%", height: "36px", display: "block" }}
+  >
+    <polyline
+      points="0,18 50,18 62,5 68,31 76,18 120,18 128,22 136,18 200,18 212,8 218,28 224,18 260,18 265,14 272,22 278,18 400,18 450,18 462,5 468,31 476,18 520,18 528,22 536,18 600,18 612,8 618,28 624,18 660,18 665,14 672,22 678,18 800,18"
+      fill="none"
+      stroke={triggered ? "#dc2626" : isUrgent ? "#dc2626" : "#00d082"}
+      strokeWidth="1.5"
+      opacity="0.7"
+    />
+  </svg>
+</div>
 
           {/* Countdown */}
           {status && (
