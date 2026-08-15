@@ -14,8 +14,6 @@ type FileRow = {
 
 // URL Worker Cloudflare — isi setelah deploy Worker
 const WORKER_URL = process.env.NEXT_PUBLIC_UPLOAD_WORKER_URL || "/api/files";
- console.log("Worker URL:", WORKER_URL);
-
 export default function Admin() {
   const [pin, setPin]               = useState("");
   const [unlocked, setUnlocked]     = useState(false);
@@ -195,7 +193,6 @@ export default function Admin() {
         )}
 
         {message && <p className="message">{message}</p>}
-        <p style={{fontSize:10, color:'gray'}}>{WORKER_URL}</p>
 
         <Link href="/" className="foot-link">← Kembali ke halaman absen</Link>
       </div>
