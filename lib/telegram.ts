@@ -6,16 +6,23 @@ function getConfig() {
   if (!token || !chatIdsRaw) {
     throw new Error("Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID env vars");
   }
-  // Support multiple Chat IDs dipisah koma
   const chatIds = chatIdsRaw.split(",").map((id) => id.trim()).filter(Boolean);
   return { token, chatIds };
 }
 
-// Kirim teks ke semua Chat ID
+async function settleAll(tasks: Promise<unknown>[]) {
+  const results = await Promise.allSettled(tasks);
+  const failed = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+  failed.forEach((f) => console.error("Telegram send failed:", f.reason));
+  if (results.length > 0 && failed.length === results.length) {
+    throw new Error("Semua pengiriman Telegram gagal");
+  }
+}
+
 export async function sendWhatsAppText(text: string) {
   const { token, chatIds } = getConfig();
 
-  await Promise.allSettled(
+  await settleAll(
     chatIds.map((chatId) =>
       fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
         method: "POST",
@@ -29,7 +36,6 @@ export async function sendWhatsAppText(text: string) {
   );
 }
 
-// Kirim file ke semua Chat ID
 export async function sendWhatsAppDocument(
   fileBuffer: Buffer,
   filename: string,
@@ -37,7 +43,7 @@ export async function sendWhatsAppDocument(
 ) {
   const { token, chatIds } = getConfig();
 
-  await Promise.allSettled(
+  await settleAll(
     chatIds.map(async (chatId) => {
       const form = new FormData();
       form.append("chat_id", chatId);
