@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdmin, describeDbError } from "@/lib/supabase";
+
+const NO_CACHE = { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" };
 
 export async function GET() {
   const supabase = getSupabaseAdmin();
@@ -10,8 +12,11 @@ export async function GET() {
     .eq("id", 1)
     .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !data) {
+    return NextResponse.json(
+      { error: describeDbError(error) },
+      { status: 500, headers: NO_CACHE }
+    );
   }
 
   const lastCheckin = new Date(data.last_checkin);
@@ -20,16 +25,12 @@ export async function GET() {
   );
 
   return NextResponse.json(
-  {
-    last_checkin: data.last_checkin,
-    threshold_hours: data.threshold_hours,
-    triggered: data.triggered,
-    deadline: deadline.toISOString(),
-  },
-  {
-    headers: {
-      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    {
+      last_checkin: data.last_checkin,
+      threshold_hours: data.threshold_hours,
+      triggered: data.triggered,
+      deadline: deadline.toISOString(),
     },
-  }
-);
+    { headers: NO_CACHE }
+  );
 }
