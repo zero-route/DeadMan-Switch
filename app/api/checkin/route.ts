@@ -1,15 +1,13 @@
- export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdmin, describeDbError } from "@/lib/supabase";
 import { isValidPin } from "@/lib/auth";
 
-// ── In-memory rate limiter ──
-// Key: IP address, Value: { count, resetAt }
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
-const MAX_ATTEMPTS = 5;      // maksimal 5 percobaan
-const WINDOW_MS    = 60_000; // per 1 menit
-const BLOCK_MS     = 300_000; // blokir 5 menit setelah melebihi limit
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS    = 60_000;
+const BLOCK_MS     = 300_000;
 
 function getIP(req: NextRequest): string {
   return (
@@ -25,13 +23,11 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
   const record = attempts.get(ip);
 
   if (!record || now > record.resetAt) {
-    // Window baru atau sudah expired
     attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
     return { allowed: true };
   }
 
   if (record.count >= MAX_ATTEMPTS) {
-    // Sudah melebihi limit — blokir dan perpanjang window
     record.resetAt = now + BLOCK_MS;
     return { allowed: false, retryAfter: Math.ceil(BLOCK_MS / 1000) };
   }
@@ -62,25 +58,29 @@ export async function POST(req: NextRequest) {
   const pin  = body?.pin;
 
   if (!isValidPin(pin)) {
-    // PIN salah tetap dihitung sebagai attempt
     return NextResponse.json({ error: "PIN salah" }, { status: 401 });
   }
 
-  // PIN benar — reset counter
   resetOnSuccess(ip);
 
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase
+  const checkedInAt = new Date().toISOString();
+
+  const { data, error } = await supabase
     .from("switch_state")
-    .update({
-      last_checkin: new Date().toISOString(),
-      triggered: false,
-    })
-    .eq("id", 1);
+    .upsert(
+      { id: 1, last_checkin: checkedInAt, triggered: false },
+      { onConflict: "id" }
+    )
+    .select("id");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: describeDbError(error) }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, checked_in_at: new Date().toISOString() });
+  if (!data || data.length === 0) {
+    return NextResponse.json({ error: "Check-in tidak tersimpan" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, checked_in_at: checkedInAt });
 }
