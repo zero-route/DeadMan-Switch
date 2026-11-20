@@ -99,4 +99,4 @@ export async function DELETE(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: describeDbError(error) }, { status: 500 });
   return NextResponse.json({ ok: true });
-
+}
